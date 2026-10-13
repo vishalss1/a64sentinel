@@ -41,9 +41,16 @@ def main():
             work = case / "minimized" / f"config-{cfg}"
             assert (work / "program.s").stat().st_size > 0
             assert (work / "program.ll").stat().st_size > 0
-        run([exe, "--compiler", os.path.relpath(fixture), "--opt", "-O0", "--opt", "-O2",
+        # relpath is a bare filename when CTest runs beside the fixture. Keep
+        # an explicit directory component so POSIX treats it as a local path.
+        relative_fixture = os.path.join(os.curdir, os.path.relpath(fixture))
+        run([exe, "--compiler", relative_fixture, "--opt", "-O0", "--opt", "-O2",
              "--budget", "0", "--out", root / "zero-budget"], 1)
         zero_case = root / "zero-budget" / "seed-1"
+        zero_report = json.loads((zero_case / "report.json").read_text())
+        for observation in zero_report["observations"]:
+            assert Path(observation["compiler"]).is_absolute()
+            assert Path(observation["compiler"]).resolve() == Path(fixture).resolve()
         assert not (zero_case / "minimized.c").exists()
         assert not json.loads((zero_case / "reduction.json").read_text())["confirmed"]
         triple = subprocess.run([gcc, "-dumpmachine"], capture_output=True, text=True, check=True).stdout
