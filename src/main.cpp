@@ -36,6 +36,34 @@ int main(int argc,char** argv) {
                 for(std::size_t j=0;j<o.matrix.size();++j)
                     sentinel::diagnostics(o.matrix[j],source,dir/"original"/("config-"+std::to_string(j)),o.timeout);
             }
+            if(status=="mismatch" && o.minimize) {
+                std::size_t left=0,right=1;
+                auto different=[](const sentinel::Observation& a,const sentinel::Observation& b) {
+                    return a.execution.exit_code!=b.execution.exit_code || a.execution.out!=b.execution.out || a.execution.err!=b.execution.err;
+                };
+                for(std::size_t j=1;j<observations.size();++j) if(different(observations[0],observations[j])) { right=j; break; }
+                auto candidate=dir/(o.cxx ? "candidate.cpp" : "candidate.c");
+                unsigned attempt=0;
+                auto predicate=[&](const std::string& trial) {
+                    sentinel::write_file(candidate,trial);
+                    for(unsigned repeat=0;repeat<2;++repeat) {
+                        auto work=dir/"reduction"/("trial-"+std::to_string(attempt++));
+                        std::vector<sentinel::Observation> pair{
+                            sentinel::test(o.matrix[left],candidate,work/"left",o.timeout),
+                            sentinel::test(o.matrix[right],candidate,work/"right",o.timeout)};
+                        if(sentinel::classify(pair)!="mismatch") return false;
+                    }
+                    return true;
+                };
+                auto reduced=sentinel::minimize(text,predicate,o.budget);
+                auto minimized=dir/(o.cxx ? "minimized.cpp" : "minimized.c");
+                sentinel::write_file(minimized,reduced.source);
+                auto final=run(o,minimized,dir/"minimized",true);
+                sentinel::report(dir/"minimized-report.json",seed,minimized.filename().string(),final,o.timeout);
+                sentinel::write_file(dir/"reduction.json","{\"attempts\":"+std::to_string(reduced.attempts)+",\"removed_blocks\":"+std::to_string(reduced.removed)+",\"budget\":"+std::to_string(o.budget)+"}\n");
+                std::filesystem::remove(candidate);
+                std::filesystem::remove_all(dir/"reduction");
+            }
             if(status=="mismatch") ++mismatches;
             else if(status!="pass") ++errors;
             std::cout<<"seed "<<seed<<": "<<status<<" ("<<dir.string()<<")\n";
