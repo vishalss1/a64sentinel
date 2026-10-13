@@ -25,5 +25,5 @@ TEST(Process, TerminatesTimeoutsAndDetectsTruncation) {
 }
 TEST(Process, MissingExecutablesAreUnsuccessful) {
     auto dir=scratch(); auto r=sentinel::execute({"missing-sentinel-executable-abc"},dir,std::chrono::seconds(1));
-    EXPECT_TRUE(!r.started || r.exit_code!=0); std::filesystem::remove_all(dir);
+    EXPECT_FALSE(r.started); EXPECT_NE(r.exit_code,0); std::filesystem::remove_all(dir);
 }

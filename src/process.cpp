@@ -1,6 +1,8 @@
 #include "sentinel/process.hpp"
 #include <fstream>
 #include <atomic>
+#include <cerrno>
+#include <cstring>
 #include <stdexcept>
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -75,30 +77,52 @@ ProcessResult execute(const std::vector<std::string>& args, const std::filesyste
     if(job) CloseHandle(job);
     CloseHandle(out); CloseHandle(err); CloseHandle(input);
 #else
+    int launch_pipe[2];
+    if(pipe(launch_pipe)!=0) throw std::runtime_error("cannot create launch-status pipe");
+    if(fcntl(launch_pipe[0],F_SETFD,FD_CLOEXEC)<0 || fcntl(launch_pipe[1],F_SETFD,FD_CLOEXEC)<0) {
+        close(launch_pipe[0]); close(launch_pipe[1]); throw std::runtime_error("cannot configure launch-status pipe");
+    }
     pid_t pid=fork();
     if(pid==0) {
+        close(launch_pipe[0]);
+        auto fail=[&](int code) { int error=errno; static_cast<void>(write(launch_pipe[1],&error,sizeof(error))); _exit(code); };
         setpgid(0,0);
         int out=open(stdout_path.c_str(),O_WRONLY|O_CREAT|O_TRUNC,0600);
         int err=open(stderr_path.c_str(),O_WRONLY|O_CREAT|O_TRUNC,0600);
         int input=open("/dev/null",O_RDONLY);
-        if(out<0 || err<0 || input<0) _exit(126);
-        dup2(out,STDOUT_FILENO); dup2(err,STDERR_FILENO); dup2(input,STDIN_FILENO);
+        if(out<0 || err<0 || input<0) fail(126);
+        if(dup2(out,STDOUT_FILENO)<0 || dup2(err,STDERR_FILENO)<0 || dup2(input,STDIN_FILENO)<0) fail(126);
         close(out); close(err); close(input);
-        if(chdir(directory.c_str())!=0) _exit(126);
+        if(chdir(directory.c_str())!=0) fail(126);
         std::vector<char*> argv; for(auto& a:args) argv.push_back(const_cast<char*>(a.c_str()));
-        argv.push_back(nullptr); execvp(argv[0],argv.data()); _exit(127);
+        argv.push_back(nullptr); execvp(argv[0],argv.data()); fail(127);
     }
+    close(launch_pipe[1]);
     if(pid>0) {
         result.started=true; setpgid(pid,pid); int status=0;
-        while(waitpid(pid,&status,WNOHANG)==0) {
+        bool reaped=false;
+        while(!reaped) {
+            auto waited=waitpid(pid,&status,WNOHANG);
+            if(waited==pid) { reaped=true; break; }
+            if(waited<0) {
+                if(errno==EINTR) continue;
+                result.started=false; result.err="waitpid failed: "+std::string(std::strerror(errno)); break;
+            }
             if(std::chrono::steady_clock::now()-begin>=timeout) {
-                result.timed_out=true; kill(-pid,SIGKILL); waitpid(pid,&status,0); break;
+                result.timed_out=true; kill(-pid,SIGKILL);
+                while((waited=waitpid(pid,&status,0))<0 && errno==EINTR) {}
+                reaped=waited==pid; break;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
         kill(-pid,SIGKILL);
-        result.exit_code=WIFEXITED(status) ? WEXITSTATUS(status) : 128+WTERMSIG(status);
+        if(reaped) result.exit_code=WIFEXITED(status) ? WEXITSTATUS(status) : 128+WTERMSIG(status);
+        int launch_error=0;
+        if(::read(launch_pipe[0],&launch_error,sizeof(launch_error))>0) {
+            result.started=false; result.err="cannot launch process: "+std::string(std::strerror(launch_error));
+        }
     } else result.err="fork failed";
+    close(launch_pipe[0]);
 #endif
     result.out=read(stdout_path,result.truncated); result.err+=read(stderr_path,result.truncated);
     result.elapsed_ms=std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()-begin).count();
