@@ -21,12 +21,19 @@ void report(const std::filesystem::path& path,std::uint64_t seed,const std::stri
      <<",\"status\":"<<json(classify(obs))<<",\"timeout_ms\":"<<timeout.count()<<",\"observations\":[";
     for(std::size_t i=0;i<obs.size();++i) {
         auto& o=obs[i]; auto& c=o.config; if(i) s<<',';
+        auto artifact=[&](const std::string& name) {
+            auto file=std::filesystem::path(o.work_directory)/name;
+            return std::filesystem::is_regular_file(file) ? json(std::filesystem::relative(file,path.parent_path()).generic_string()) : "null";
+        };
         s<<"{\"compiler\":"<<json(c.compiler)<<",\"version\":"<<json(o.version)<<",\"target_triple\":"<<json(o.target_triple)
          <<",\"optimization\":"<<json(c.optimization)<<",\"target\":"<<json(c.target)
          <<",\"cpu\":"<<json(c.cpu)<<",\"cxx\":"<<(c.cxx?"true":"false")
          <<",\"flags\":"<<array(c.flags)<<",\"runner\":"<<array(c.runner)
          <<",\"command\":"<<array(o.command)<<",\"run_command\":"<<array(o.run_command)<<",\"work_directory\":"<<json(o.work_directory)<<",\"compilation\":"<<process(o.compilation)
-         <<",\"execution\":"<<process(o.execution)<<"}";
+         <<",\"execution\":"<<process(o.execution)
+         <<",\"artifacts\":{\"binary\":"<<artifact("program.exe")<<",\"assembly\":"<<artifact("program.s")
+         <<",\"llvm_ir\":"<<artifact("program.ll")<<",\"assembly_log\":"<<artifact("assembly.log")
+         <<",\"llvm_ir_log\":"<<artifact("llvm-ir.log")<<"}}";
     }
     s<<"]}\n"; write_file(path,s.str());
 }

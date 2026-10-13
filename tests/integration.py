@@ -31,6 +31,9 @@ def main():
         case = out / "seed-1"
         report = json.loads((case / "minimized-report.json").read_text())
         assert report["status"] == "mismatch"
+        for observation in report["observations"]:
+            for name in ("binary", "assembly", "llvm_ir", "assembly_log", "llvm_ir_log"):
+                assert (case / observation["artifacts"][name]).is_file()
         minimized = (case / "minimized.c").read_text()
         assert minimized.count("/* BEGIN block ") == 1
         assert "/* BEGIN block 5 */" in minimized

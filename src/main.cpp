@@ -31,11 +31,11 @@ int main(int argc,char** argv) {
             if(o.mode=="generate") { std::cout<<source.string()<<"\n"; continue; }
             auto observations=run(o,source,dir/"original",false);
             auto status=sentinel::classify(observations);
-            sentinel::report(dir/"report.json",seed,source.filename().string(),observations,o.timeout);
             if(status!="pass") {
                 for(std::size_t j=0;j<o.matrix.size();++j)
                     sentinel::diagnostics(o.matrix[j],source,dir/"original"/("config-"+std::to_string(j)),o.timeout);
             }
+            sentinel::report(dir/"report.json",seed,source.filename().string(),observations,o.timeout);
             if(status=="mismatch" && o.minimize) {
                 std::size_t left=0,right=1;
                 auto different=[](const sentinel::Observation& a,const sentinel::Observation& b) {
