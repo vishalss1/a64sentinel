@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -37,6 +38,16 @@ def main():
             work = case / "minimized" / f"config-{cfg}"
             assert (work / "program.s").stat().st_size > 0
             assert (work / "program.ll").stat().st_size > 0
+        run([exe, "--compiler", os.path.relpath(fixture), "--opt", "-O0", "--opt", "-O2",
+             "--budget", "0", "--out", root / "zero-budget"], 1)
+        zero_case = root / "zero-budget" / "seed-1"
+        assert not (zero_case / "minimized.c").exists()
+        assert not json.loads((zero_case / "reduction.json").read_text())["confirmed"]
+        triple = subprocess.run([gcc, "-dumpmachine"], capture_output=True, text=True, check=True).stdout
+        if "aarch64" not in triple and "arm64" not in triple:
+            run([exe, "--compiler", gcc, "--target", "aarch64", "--out", root / "wrong-target"], 2)
+            wrong = json.loads((root / "wrong-target" / "seed-1" / "report.json").read_text())
+            assert wrong["status"] == "compile_error"
         scripts = Path(__file__).resolve().parents[1] / "python"
         run([sys.executable, scripts / "regressions.py", case / "minimized-report.json",
              "--executable", exe, "--out", root / "replay", "--expect", "mismatch"])

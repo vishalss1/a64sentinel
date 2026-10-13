@@ -10,6 +10,7 @@ Observation test(const Configuration& c, const std::filesystem::path& source,
                  const std::filesystem::path& work, std::chrono::milliseconds timeout) {
     std::filesystem::create_directories(work);
     Observation o; o.config=c; o.work_directory=std::filesystem::absolute(work).string();
+    o.version=execute({c.compiler,"--version"},work,timeout).out;
     o.target_triple=execute({c.compiler,"-dumpmachine"},work,timeout).out;
     if(c.target=="aarch64" && c.compiler.find("clang")==std::string::npos &&
        o.target_triple.find("aarch64")==std::string::npos && o.target_triple.find("arm64")==std::string::npos) {
@@ -17,7 +18,6 @@ Observation test(const Configuration& c, const std::filesystem::path& source,
         o.compilation.err="requested AArch64 but compiler target is "+o.target_triple;
         return o;
     }
-    o.version=execute({c.compiler,"--version"},work,timeout).out;
     auto binary=std::filesystem::absolute(work/"program.exe");
     std::filesystem::remove(binary);
     o.command=compiler_args(c,std::filesystem::absolute(source));
