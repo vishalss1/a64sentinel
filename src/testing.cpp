@@ -2,6 +2,8 @@
 namespace sentinel {
 std::vector<std::string> compiler_args(const Configuration& c, const std::filesystem::path& source) {
     std::vector<std::string> a{c.compiler, c.cxx ? "-std=c++17" : "-std=c11", "-x", c.cxx ? "c++" : "c", c.optimization};
+    if(c.target=="aarch64" && c.compiler.find("clang")!=std::string::npos) a.push_back("--target=aarch64-linux-gnu");
+    if(!c.cpu.empty()) a.push_back("-mcpu="+c.cpu);
     a.insert(a.end(),c.flags.begin(),c.flags.end()); a.push_back(source.string()); return a;
 }
 Observation test(const Configuration& c, const std::filesystem::path& source,
