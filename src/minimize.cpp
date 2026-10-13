@@ -4,8 +4,10 @@
 namespace sentinel {
 Reduction minimize(std::string source,const std::function<bool(const std::string&)>& interesting,unsigned budget) {
     Reduction r{source,0,0};
-    if(!budget || !interesting(source)) return r;
+    if(!budget) return r;
     ++r.attempts;
+    if(!interesting(source)) return r;
+    r.confirmed=true;
     std::size_t width=16;
     while(width) {
         bool progress=true;

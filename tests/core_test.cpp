@@ -41,7 +41,7 @@ TEST(Reduction, RetainsRequiredBlockAndHonorsBudget) {
     auto source=sentinel::generate(1);
     auto predicate=[](const std::string& s){return s.find("/* BEGIN block 5 */")!=std::string::npos;};
     auto reduced=sentinel::minimize(source,predicate,48);
-    EXPECT_EQ(reduced.removed,11u); EXPECT_LE(reduced.attempts,48u); EXPECT_TRUE(predicate(reduced.source));
+    EXPECT_TRUE(reduced.confirmed); EXPECT_EQ(reduced.removed,11u); EXPECT_LE(reduced.attempts,48u); EXPECT_TRUE(predicate(reduced.source));
     EXPECT_EQ(sentinel::minimize(source,predicate,0).source,source);
     EXPECT_LE(sentinel::minimize(source,predicate,1).attempts,1u);
 }

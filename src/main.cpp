@@ -51,16 +51,20 @@ int main(int argc,char** argv) {
                         std::vector<sentinel::Observation> pair{
                             sentinel::test(o.matrix[left],candidate,work/"left",o.timeout),
                             sentinel::test(o.matrix[right],candidate,work/"right",o.timeout)};
-                        if(sentinel::classify(pair)!="mismatch") return false;
+                        if(sentinel::classify(pair)!="mismatch" ||
+                           pair[0].execution.exit_code!=observations[left].execution.exit_code ||
+                           pair[1].execution.exit_code!=observations[right].execution.exit_code) return false;
                     }
                     return true;
                 };
                 auto reduced=sentinel::minimize(text,predicate,o.budget);
+                if(reduced.confirmed) {
                 auto minimized=dir/(o.cxx ? "minimized.cpp" : "minimized.c");
                 sentinel::write_file(minimized,reduced.source);
                 auto final=run(o,minimized,dir/"minimized",true);
                 sentinel::report(dir/"minimized-report.json",seed,minimized.filename().string(),final,o.timeout);
-                sentinel::write_file(dir/"reduction.json","{\"attempts\":"+std::to_string(reduced.attempts)+",\"removed_blocks\":"+std::to_string(reduced.removed)+",\"budget\":"+std::to_string(o.budget)+"}\n");
+                }
+                sentinel::write_file(dir/"reduction.json","{\"confirmed\":"+std::string(reduced.confirmed?"true":"false")+",\"attempts\":"+std::to_string(reduced.attempts)+",\"removed_blocks\":"+std::to_string(reduced.removed)+",\"budget\":"+std::to_string(o.budget)+"}\n");
                 std::filesystem::remove(candidate);
                 std::filesystem::remove_all(dir/"reduction");
             }
