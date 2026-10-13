@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <gtest/gtest.h>
 #include "sentinel/generator.hpp"
 #include "sentinel/random.hpp"
