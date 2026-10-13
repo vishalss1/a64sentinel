@@ -8,7 +8,8 @@ struct Configuration {
 };
 struct Observation {
     Configuration config;
-    std::vector<std::string> command;
+    std::vector<std::string> command, run_command;
+    std::string work_directory;
     ProcessResult compilation, execution;
     std::string version, target_triple;
 };

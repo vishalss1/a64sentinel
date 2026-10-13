@@ -9,7 +9,7 @@ std::vector<std::string> compiler_args(const Configuration& c, const std::filesy
 Observation test(const Configuration& c, const std::filesystem::path& source,
                  const std::filesystem::path& work, std::chrono::milliseconds timeout) {
     std::filesystem::create_directories(work);
-    Observation o; o.config=c;
+    Observation o; o.config=c; o.work_directory=std::filesystem::absolute(work).string();
     o.target_triple=execute({c.compiler,"-dumpmachine"},work,timeout).out;
     if(c.target=="aarch64" && c.compiler.find("clang")==std::string::npos &&
        o.target_triple.find("aarch64")==std::string::npos && o.target_triple.find("arm64")==std::string::npos) {
@@ -24,7 +24,7 @@ Observation test(const Configuration& c, const std::filesystem::path& source,
     o.command.insert(o.command.end(),{"-o",binary.string()});
     o.compilation=execute(o.command,work,timeout);
     if(o.compilation.started && !o.compilation.timed_out && o.compilation.exit_code==0) {
-        auto run=c.runner; run.push_back(binary.string()); o.execution=execute(run,work,timeout);
+        o.run_command=c.runner; o.run_command.push_back(binary.string()); o.execution=execute(o.run_command,work,timeout);
     }
     return o;
 }
