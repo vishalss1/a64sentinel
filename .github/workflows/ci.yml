@@ -1,0 +1,36 @@
+name: compiler-correctness
+on: [push, pull_request]
+jobs:
+  native:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        compiler: [g++, clang++]
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update
+      - run: sudo apt-get install -y cmake ninja-build clang g++ python3
+      - run: cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build
+      - run: ctest --test-dir build --output-on-failure
+      - run: python3 tests/sanitizers.py build/a64sentinel gcc clang
+      - run: python3 python/regressions.py regressions/unsigned_alias.json --executable build/a64sentinel --out out/regressions
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: native-${{ matrix.compiler }}
+          path: out/
+  aarch64:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update
+      - run: sudo apt-get install -y cmake ninja-build clang g++ gcc-aarch64-linux-gnu qemu-user
+      - run: cmake -S . -B build -G Ninja -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build
+      - run: build/a64sentinel --target aarch64 --compiler aarch64-linux-gnu-gcc --compiler clang --cpu neoverse-v2 --flag -static --runner qemu-aarch64 --count 10 --out out/aarch64
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aarch64-reports
+          path: out/aarch64/
