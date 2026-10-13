@@ -85,7 +85,11 @@ ProcessResult execute(const std::vector<std::string>& args, const std::filesyste
     pid_t pid=fork();
     if(pid==0) {
         close(launch_pipe[0]);
-        auto fail=[&](int code) { int error=errno; static_cast<void>(write(launch_pipe[1],&error,sizeof(error))); _exit(code); };
+        auto fail=[&](int code) {
+            int error=errno; ssize_t written;
+            do { written=write(launch_pipe[1],&error,sizeof(error)); } while(written<0 && errno==EINTR);
+            _exit(code);
+        };
         setpgid(0,0);
         int out=open(stdout_path.c_str(),O_WRONLY|O_CREAT|O_TRUNC,0600);
         int err=open(stderr_path.c_str(),O_WRONLY|O_CREAT|O_TRUNC,0600);
@@ -118,7 +122,9 @@ ProcessResult execute(const std::vector<std::string>& args, const std::filesyste
         kill(-pid,SIGKILL);
         if(reaped) result.exit_code=WIFEXITED(status) ? WEXITSTATUS(status) : 128+WTERMSIG(status);
         int launch_error=0;
-        if(::read(launch_pipe[0],&launch_error,sizeof(launch_error))>0) {
+        ssize_t launch_bytes;
+        do { launch_bytes=::read(launch_pipe[0],&launch_error,sizeof(launch_error)); } while(launch_bytes<0 && errno==EINTR);
+        if(launch_bytes>0) {
             result.started=false; result.err="cannot launch process: "+std::string(std::strerror(launch_error));
         }
     } else result.err="fork failed";
