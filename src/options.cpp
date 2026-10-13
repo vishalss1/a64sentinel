@@ -47,6 +47,11 @@ Options parse(int argc,char** argv) {
     if(o.count-1>std::numeric_limits<std::uint64_t>::max()-o.seed) throw std::invalid_argument("seed range overflow");
     if(compilers.empty()) compilers={"gcc","clang"};
     if(opts.empty()) opts={"-O0","-O2","-O3"};
+    auto normalize=[](std::string& path) {
+        if(std::filesystem::path(path).has_parent_path()) path=std::filesystem::absolute(path).string();
+    };
+    for(auto& compiler:compilers) normalize(compiler);
+    if(!base.runner.empty()) normalize(base.runner.front());
     for(auto& compiler:compilers) for(auto& opt:opts) { auto c=base; c.compiler=compiler; c.optimization=opt; o.matrix.push_back(c); }
     if(o.mode=="run" && o.matrix.size()<2) throw std::invalid_argument("differential testing requires two configurations");
     return o;

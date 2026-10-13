@@ -17,7 +17,7 @@ std::string read_file(const std::filesystem::path& p) {
     std::ostringstream s; s<<f.rdbuf(); return s.str();
 }
 void write_file(const std::filesystem::path& p,const std::string& s) {
-    std::filesystem::create_directories(p.parent_path());
+    if(!p.parent_path().empty()) std::filesystem::create_directories(p.parent_path());
     std::ofstream f(p,std::ios::binary); f<<s;
     if(!f) throw std::runtime_error("cannot write "+p.string());
 }
