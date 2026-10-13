@@ -73,7 +73,30 @@ ProcessResult execute(const std::vector<std::string>& args, const std::filesyste
     if(job) CloseHandle(job);
     CloseHandle(out); CloseHandle(err); CloseHandle(input);
 #else
-    result.err="POSIX backend unavailable";
+    pid_t pid=fork();
+    if(pid==0) {
+        setpgid(0,0);
+        int out=open(stdout_path.c_str(),O_WRONLY|O_CREAT|O_TRUNC,0600);
+        int err=open(stderr_path.c_str(),O_WRONLY|O_CREAT|O_TRUNC,0600);
+        int input=open("/dev/null",O_RDONLY);
+        if(out<0 || err<0 || input<0) _exit(126);
+        dup2(out,STDOUT_FILENO); dup2(err,STDERR_FILENO); dup2(input,STDIN_FILENO);
+        close(out); close(err); close(input);
+        if(chdir(directory.c_str())!=0) _exit(126);
+        std::vector<char*> argv; for(auto& a:args) argv.push_back(const_cast<char*>(a.c_str()));
+        argv.push_back(nullptr); execvp(argv[0],argv.data()); _exit(127);
+    }
+    if(pid>0) {
+        result.started=true; setpgid(pid,pid); int status=0;
+        while(waitpid(pid,&status,WNOHANG)==0) {
+            if(std::chrono::steady_clock::now()-begin>=timeout) {
+                result.timed_out=true; kill(-pid,SIGKILL); waitpid(pid,&status,0); break;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+        kill(-pid,SIGKILL);
+        result.exit_code=WIFEXITED(status) ? WEXITSTATUS(status) : 128+WTERMSIG(status);
+    } else result.err="fork failed";
 #endif
     result.out=read(stdout_path,result.truncated); result.err+=read(stderr_path,result.truncated);
     result.elapsed_ms=std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()-begin).count();
