@@ -30,5 +30,16 @@ void report(const std::filesystem::path& path,std::uint64_t seed,const std::stri
     }
     s<<"]}\n"; write_file(path,s.str());
 }
-void diagnostics(const Configuration&,const std::filesystem::path&,const std::filesystem::path&,std::chrono::milliseconds) {}
+void diagnostics(const Configuration& c,const std::filesystem::path& source,const std::filesystem::path& work,
+                 std::chrono::milliseconds timeout) {
+    auto args=compiler_args(c,std::filesystem::absolute(source));
+    args.insert(args.end(),{"-S","-o",std::filesystem::absolute(work/"program.s").string()});
+    auto result=execute(args,work,timeout);
+    write_file(work/"assembly.log",process(result));
+    if(c.compiler.find("clang")!=std::string::npos) {
+        args=compiler_args(c,std::filesystem::absolute(source));
+        args.insert(args.end(),{"-S","-emit-llvm","-o",std::filesystem::absolute(work/"program.ll").string()});
+        result=execute(args,work,timeout); write_file(work/"llvm-ir.log",process(result));
+    }
+}
 }
