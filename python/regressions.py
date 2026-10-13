@@ -13,8 +13,8 @@ def replay(report_path, executable, output):
         raise ValueError("unsupported report schema")
     source = (report_path.parent / report["source"]).resolve()
     results = []
-    # Run each original configuration against itself at O0 as a placeholder
-    # matrix, then compare the saved configuration's observation across runs.
+    # Duplicate each configuration to satisfy the native differential contract;
+    # compare the original configurations after validating both executions.
     for index, cfg in enumerate(report["observations"]):
         cmd = [str(executable), "--source", str(source), "--seed", str(report["seed"]),
                "--out", str(output / str(index)), "--compiler", cfg["compiler"],
