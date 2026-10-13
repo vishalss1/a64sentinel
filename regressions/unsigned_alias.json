@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "seed": 0,
+  "source": "cases/unsigned_alias.c",
+  "timeout_ms": 10000,
+  "observations": [
+    {
+      "compiler": "gcc",
+      "optimization": "-O0",
+      "target": "native",
+      "cpu": "",
+      "cxx": false,
+      "flags": [],
+      "runner": []
+    },
+    {
+      "compiler": "gcc",
+      "optimization": "-O2",
+      "target": "native",
+      "cpu": "",
+      "cxx": false,
+      "flags": [],
+      "runner": []
+    },
+    {
+      "compiler": "gcc",
+      "optimization": "-O3",
+      "target": "native",
+      "cpu": "",
+      "cxx": false,
+      "flags": [],
+      "runner": []
+    },
+    {
+      "compiler": "clang",
+      "optimization": "-O0",
+      "target": "native",
+      "cpu": "",
+      "cxx": false,
+      "flags": [],
+      "runner": []
+    },
+    {
+      "compiler": "clang",
+      "optimization": "-O2",
+      "target": "native",
+      "cpu": "",
+      "cxx": false,
+      "flags": [],
+      "runner": []
+    },
+    {
+      "compiler": "clang",
+      "optimization": "-O3",
+      "target": "native",
+      "cpu": "",
+      "cxx": false,
+      "flags": [],
+      "runner": []
+    }
+  ]
+}
