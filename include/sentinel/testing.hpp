@@ -10,7 +10,7 @@ struct Observation {
     Configuration config;
     std::vector<std::string> command;
     ProcessResult compilation, execution;
-    std::string version;
+    std::string version, target_triple;
 };
 Observation test(const Configuration&, const std::filesystem::path& source,
                  const std::filesystem::path& work, std::chrono::milliseconds timeout);

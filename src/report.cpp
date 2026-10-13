@@ -21,7 +21,7 @@ void report(const std::filesystem::path& path,std::uint64_t seed,const std::stri
      <<",\"status\":"<<json(classify(obs))<<",\"timeout_ms\":"<<timeout.count()<<",\"observations\":[";
     for(std::size_t i=0;i<obs.size();++i) {
         auto& o=obs[i]; auto& c=o.config; if(i) s<<',';
-        s<<"{\"compiler\":"<<json(c.compiler)<<",\"version\":"<<json(o.version)
+        s<<"{\"compiler\":"<<json(c.compiler)<<",\"version\":"<<json(o.version)<<",\"target_triple\":"<<json(o.target_triple)
          <<",\"optimization\":"<<json(c.optimization)<<",\"target\":"<<json(c.target)
          <<",\"cpu\":"<<json(c.cpu)<<",\"cxx\":"<<(c.cxx?"true":"false")
          <<",\"flags\":"<<array(c.flags)<<",\"runner\":"<<array(c.runner)
