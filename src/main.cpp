@@ -59,10 +59,10 @@ int main(int argc,char** argv) {
                 };
                 auto reduced=sentinel::minimize(text,predicate,o.budget);
                 if(reduced.confirmed) {
-                auto minimized=dir/(o.cxx ? "minimized.cpp" : "minimized.c");
-                sentinel::write_file(minimized,reduced.source);
-                auto final=run(o,minimized,dir/"minimized",true);
-                sentinel::report(dir/"minimized-report.json",seed,minimized.filename().string(),final,o.timeout);
+                    auto minimized=dir/(o.cxx ? "minimized.cpp" : "minimized.c");
+                    sentinel::write_file(minimized,reduced.source);
+                    auto final=run(o,minimized,dir/"minimized",true);
+                    sentinel::report(dir/"minimized-report.json",seed,minimized.filename().string(),final,o.timeout);
                 }
                 sentinel::write_file(dir/"reduction.json","{\"confirmed\":"+std::string(reduced.confirmed?"true":"false")+",\"attempts\":"+std::to_string(reduced.attempts)+",\"removed_blocks\":"+std::to_string(reduced.removed)+",\"budget\":"+std::to_string(o.budget)+"}\n");
                 std::filesystem::remove(candidate);
