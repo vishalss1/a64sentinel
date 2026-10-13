@@ -1,4 +1,23 @@
 #include "sentinel/generator.hpp"
+#include "sentinel/random.hpp"
+#include <sstream>
 namespace sentinel {
-std::string generate(std::uint64_t, bool) { return "int main(void) { return 0; }\n"; }
+std::string generate(std::uint64_t seed, bool cxx) {
+    Random r(seed);
+    std::ostringstream s;
+    s << "/* A64Sentinel seed " << seed << " language " << (cxx ? "C++" : "C") << " */\n"
+      << "#include <stdint.h>\n#include <stdio.h>\n#include <inttypes.h>\n"
+      << "int main(void) {\nuint32_t a[128], b[128];\n"
+      << "uint32_t x = UINT32_C(" << static_cast<std::uint32_t>(r.next()) << ");\n"
+      << "for (unsigned i=0;i<128;++i) { a[i]=x+i; b[i]=x^i; }\n";
+    for (unsigned j=0;j<12;++j) {
+        s << "/* BEGIN block " << j << " */\n"
+          << "x = (x * UINT32_C(" << static_cast<std::uint32_t>(r.next()) << ")) + UINT32_C(" << static_cast<std::uint32_t>(r.next()) << ");\n"
+          << "x ^= (x >> " << 1+r.bounded(31) << ");\n"
+          << "/* END block */\n";
+    }
+    s << "uint64_t hash=x;\nfor(unsigned i=0;i<128;++i) hash=(hash^a[i]^b[i])*UINT64_C(1099511628211);\n"
+      << "printf(\"%\" PRIu64 \"\\n\", hash);\nreturn 0;\n}\n";
+    return s.str();
+}
 }
