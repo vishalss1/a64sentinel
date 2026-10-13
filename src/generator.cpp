@@ -14,6 +14,7 @@ std::string generate(std::uint64_t seed, bool cxx) {
         s << "/* BEGIN block " << j << " */\n"
           << "x = (x * UINT32_C(" << static_cast<std::uint32_t>(r.next()) << ")) + UINT32_C(" << static_cast<std::uint32_t>(r.next()) << ");\n"
           << "x ^= (x >> " << 1+r.bounded(31) << ");\n"
+          << "for (unsigned i=0;i<128;++i) a[i] = a[i] + b[i] * UINT32_C(3) + x;\n"
           << "/* END block */\n";
     }
     s << "uint64_t hash=x;\nfor(unsigned i=0;i<128;++i) hash=(hash^a[i]^b[i])*UINT64_C(1099511628211);\n"
